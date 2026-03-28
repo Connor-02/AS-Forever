@@ -1,6 +1,8 @@
 "use client";
 
-import { useRef, useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 import { MAX_UPLOAD_SIZE_BYTES } from "@/lib/constants";
 
 type UploadResponse = {
@@ -16,19 +18,28 @@ export function UploadForm() {
   const galleryInputRef = useRef<HTMLInputElement>(null);
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [guestName, setGuestName] = useState("");
   const [caption, setCaption] = useState("");
   const [progress, setProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
 
-  const onFileSelected = (file: File | null) => {
-    setSuccessMessage(null);
-    setErrorMessage(null);
-    setProgress(0);
-    setSelectedFile(file);
-  };
+  useEffect(() => {
+    if (!selectedFile) {
+      setPreviewUrl(null);
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(selectedFile);
+    setPreviewUrl(objectUrl);
+
+    return () => {
+      URL.revokeObjectURL(objectUrl);
+    };
+  }, [selectedFile]);
 
   const validateClientFile = (file: File) => {
     if (!file.type.startsWith("image/")) {
@@ -38,6 +49,19 @@ export function UploadForm() {
       return `Image exceeds 10MB (selected: ${bytesToMb(file.size)}MB).`;
     }
     return null;
+  };
+
+  const onFileSelected = (file: File | null) => {
+    if (!file) {
+      return;
+    }
+    const validationError = validateClientFile(file);
+    setSuccessMessage(null);
+    setErrorMessage(validationError);
+    setProgress(0);
+    if (!validationError) {
+      setSelectedFile(file);
+    }
   };
 
   const resetForm = () => {
@@ -106,7 +130,7 @@ export function UploadForm() {
 
       setIsUploading(false);
       setProgress(100);
-      setSuccessMessage("Photo uploaded. Thank you for sharing this moment.");
+      setSuccessMessage("Thank you for sharing this moment.");
       resetForm();
     };
 
@@ -116,9 +140,9 @@ export function UploadForm() {
   return (
     <section className="card mx-auto w-full max-w-xl p-5 sm:p-7">
       <div className="mb-5">
-        <h1 className="font-[var(--font-serif)] text-3xl font-semibold">Upload a Photo</h1>
-        <p className="mt-2 text-sm text-stone-600">
-          Tap one option below. Camera permission will only be requested when taking a photo.
+        <h2 className="font-[var(--font-serif)] text-2xl font-semibold">Photo Upload</h2>
+        <p className="mt-2 text-sm text-[var(--ink-soft)]">
+          Camera permission is requested only when you tap Take Photo.
         </p>
       </div>
 
@@ -141,7 +165,7 @@ export function UploadForm() {
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <button
           type="button"
-          className="button-primary"
+          className="button-primary w-full"
           onClick={() => cameraInputRef.current?.click()}
           disabled={isUploading}
         >
@@ -149,7 +173,7 @@ export function UploadForm() {
         </button>
         <button
           type="button"
-          className="button-secondary"
+          className="button-secondary w-full"
           onClick={() => galleryInputRef.current?.click()}
           disabled={isUploading}
         >
@@ -157,14 +181,38 @@ export function UploadForm() {
         </button>
       </div>
 
-      <div className="mt-4 rounded-xl border border-dashed border-[var(--border)] bg-[var(--surface-muted)] p-3 text-sm">
-        {selectedFile ? (
-          <p>
-            Selected: <span className="font-semibold">{selectedFile.name}</span> (
-            {bytesToMb(selectedFile.size)}MB)
-          </p>
+      <div
+        className={`mt-4 rounded-2xl border border-dashed p-4 transition ${
+          isDragOver ? "border-rosegold bg-[#fff2ea]" : "border-[var(--border)] bg-[var(--surface-muted)]"
+        }`}
+        onDragOver={(event) => {
+          event.preventDefault();
+          setIsDragOver(true);
+        }}
+        onDragLeave={() => setIsDragOver(false)}
+        onDrop={(event) => {
+          event.preventDefault();
+          setIsDragOver(false);
+          onFileSelected(event.dataTransfer.files?.[0] ?? null);
+        }}
+      >
+        <p className="text-sm font-medium">Drag and drop on desktop, or use the buttons above.</p>
+        <p className="mt-1 text-xs text-stone-500">Images only, up to 10MB</p>
+      </div>
+
+      <div className="mt-4 rounded-2xl border border-[var(--border)] bg-white p-3">
+        {selectedFile && previewUrl ? (
+          <div className="space-y-2">
+            <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl">
+              <Image src={previewUrl} alt="Selected preview" fill className="object-cover" />
+            </div>
+            <p className="text-sm">
+              Selected: <span className="font-semibold">{selectedFile.name}</span> (
+              {bytesToMb(selectedFile.size)}MB)
+            </p>
+          </div>
         ) : (
-          <p className="text-stone-600">No image selected yet.</p>
+          <p className="text-sm text-stone-600">No image selected yet.</p>
         )}
       </div>
 
@@ -176,20 +224,20 @@ export function UploadForm() {
             onChange={(event) => setGuestName(event.target.value)}
             maxLength={80}
             className="w-full rounded-xl border border-[var(--border)] px-3 py-2.5 text-sm outline-none ring-rosegold/25 focus:ring"
-            placeholder="e.g. Alex & Jamie"
+            placeholder="e.g. Alex and Jamie"
             disabled={isUploading}
           />
         </label>
 
         <label className="block">
-          <span className="mb-1 block text-sm font-medium">Caption (optional)</span>
+          <span className="mb-1 block text-sm font-medium">Message (optional)</span>
           <textarea
             value={caption}
             onChange={(event) => setCaption(event.target.value)}
             maxLength={280}
             rows={3}
             className="w-full rounded-xl border border-[var(--border)] px-3 py-2.5 text-sm outline-none ring-rosegold/25 focus:ring"
-            placeholder="Write a short message"
+            placeholder="Leave a short message for the couple"
             disabled={isUploading}
           />
         </label>
@@ -213,9 +261,17 @@ export function UploadForm() {
         </p>
       )}
       {successMessage && (
-        <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
-          {successMessage}
-        </p>
+        <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+          <p className="text-sm font-medium text-emerald-700">{successMessage}</p>
+          <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <button type="button" onClick={resetForm} className="button-secondary w-full">
+              Upload Another
+            </button>
+            <Link href="/gallery" className="button-primary w-full">
+              View Gallery
+            </Link>
+          </div>
+        </div>
       )}
 
       <button

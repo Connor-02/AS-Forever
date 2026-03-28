@@ -24,7 +24,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${manrope.variable} ${playfair.variable} font-[var(--font-sans)]`}>
+      <body
+        className={`${manrope.variable} ${playfair.variable} font-[var(--font-sans)] antialiased`}
+      >
         {children}
       </body>
     </html>

@@ -36,9 +36,12 @@ export function AdminLoginForm() {
   }
 
   return (
-    <section className="card mx-auto w-full max-w-md p-5 sm:p-7">
-      <h1 className="font-[var(--font-serif)] text-3xl font-semibold">Host Admin</h1>
-      <p className="mt-2 text-sm text-stone-600">Enter the admin password to view uploads.</p>
+    <section className="card gradient-panel mx-auto w-full max-w-md p-5 sm:p-7">
+      <p className="soft-pill">Private Host Access</p>
+      <h1 className="mt-3 font-[var(--font-serif)] text-3xl font-semibold">Host Admin</h1>
+      <p className="mt-2 text-sm text-[var(--ink-soft)]">
+        Enter the admin password to access uploads and controls.
+      </p>
 
       <form onSubmit={onSubmit} className="mt-5 space-y-4">
         <label className="block">

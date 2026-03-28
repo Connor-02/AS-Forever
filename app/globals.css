@@ -3,13 +3,16 @@
 @tailwind utilities;
 
 :root {
-  --background: #fffdfa;
-  --foreground: #2f2426;
+  --background: #fffaf6;
+  --foreground: #33262a;
   --surface: #ffffff;
-  --surface-muted: #fff8f2;
-  --border: #ecd9d2;
-  --brand: #b76e79;
-  --brand-dark: #915761;
+  --surface-muted: #fff6ef;
+  --border: #edd8ce;
+  --brand: #b87978;
+  --brand-dark: #9a6160;
+  --ink-soft: #6f5b5d;
+  --gold-soft: #e6cfa4;
+  --shadow: 0 18px 40px rgba(63, 38, 44, 0.08);
 }
 
 * {
@@ -21,36 +24,71 @@ body {
   min-height: 100vh;
   color: var(--foreground);
   background:
-    radial-gradient(circle at 0% 0%, #ffe9e1 0%, transparent 45%),
-    radial-gradient(circle at 100% 100%, #f4ebff 0%, transparent 40%),
+    radial-gradient(circle at 10% -10%, #ffece4 0%, transparent 45%),
+    radial-gradient(circle at 90% 100%, #f7efe5 0%, transparent 45%),
+    linear-gradient(180deg, #fffcfa 0%, #fff6f0 100%),
     var(--background);
 }
 
 .shell {
-  @apply mx-auto w-full max-w-6xl px-4 sm:px-6;
+  @apply mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8;
 }
 
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
-  @apply rounded-2xl shadow-card;
+  box-shadow: var(--shadow);
+  @apply rounded-3xl;
 }
 
 .button-primary {
-  @apply rounded-xl px-5 py-3 text-sm font-semibold text-white transition;
-  background-color: var(--brand);
+  @apply inline-flex items-center justify-center rounded-2xl px-5 py-3 text-sm font-semibold text-white transition duration-200;
+  background: linear-gradient(135deg, var(--brand) 0%, #c79381 100%);
 }
 
 .button-primary:hover {
-  background-color: var(--brand-dark);
+  background: linear-gradient(135deg, var(--brand-dark) 0%, #b87d6c 100%);
+  transform: translateY(-1px);
 }
 
 .button-secondary {
-  @apply rounded-xl border px-5 py-3 text-sm font-semibold transition;
+  @apply inline-flex items-center justify-center rounded-2xl border px-5 py-3 text-sm font-semibold transition duration-200;
   border-color: var(--border);
-  background-color: var(--surface-muted);
+  background: linear-gradient(180deg, #fffdfb 0%, var(--surface-muted) 100%);
 }
 
 .button-secondary:hover {
-  background-color: #fff3eb;
+  background: #fff4eb;
+  transform: translateY(-1px);
+}
+
+.page-fade-in {
+  animation: pageFadeIn 500ms ease-out;
+}
+
+.soft-pill {
+  border: 1px solid #edd8ce;
+  background: rgba(255, 247, 240, 0.85);
+  @apply inline-flex items-center rounded-full px-3 py-1 text-xs font-medium text-stone-700;
+}
+
+.subtle-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, #ead6ca 25%, #ead6ca 75%, transparent 100%);
+}
+
+.gradient-panel {
+  background: linear-gradient(155deg, #fffdfb 0%, #fff3eb 40%, #fffaf5 100%);
+  border: 1px solid #ecd9cf;
+}
+
+@keyframes pageFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
