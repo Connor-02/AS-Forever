@@ -3,7 +3,7 @@ import Link from "next/link";
 import { formatDateTime } from "@/lib/format";
 import { createSignedPhotoUrls, listPhotos } from "@/lib/photos";
 import type { Photo } from "@/lib/types";
-
+//Forced dynamic
 export const dynamic = "force-dynamic";
 
 export default async function GalleryPage() {
