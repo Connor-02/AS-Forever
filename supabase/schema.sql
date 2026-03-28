@@ -21,9 +21,3 @@ create policy "service role full access photos"
   for all
   using (auth.role() = 'service_role')
   with check (auth.role() = 'service_role');
-
-drop policy if exists "public read approved photos" on public.photos;
-create policy "public read approved photos"
-  on public.photos
-  for select
-  using (approved = true);

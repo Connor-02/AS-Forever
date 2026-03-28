@@ -27,7 +27,7 @@ This platform is designed for events where guests need a simple, no-friction upl
 
 ### Public Gallery (Optional)
 
-- `/gallery` displays approved photos
+- `/gallery` displays all uploaded photos in a view-only format
 
 ## Routes
 
@@ -57,6 +57,16 @@ Table: `photos`
 - `approved`
 
 Storage bucket: `event-photos`
+
+Use this bucket as **private** so files are not directly downloadable via public URLs.
+
+## Supabase Setup
+
+1. Run SQL in [`supabase/schema.sql`](./supabase/schema.sql).
+2. Create a private Storage bucket named `event-photos`.
+3. Add a storage policy allowing `service_role` to manage objects in `event-photos`.
+
+The app handles viewing through short-lived signed URLs and keeps original file downloads on admin-only routes.
 
 ## Local Development
 

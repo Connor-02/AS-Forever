@@ -1,15 +1,17 @@
 import Image from "next/image";
 import Link from "next/link";
 import { formatDateTime } from "@/lib/format";
-import { listPhotos } from "@/lib/photos";
+import { createSignedPhotoUrls, listPhotos } from "@/lib/photos";
 import type { Photo } from "@/lib/types";
 
 export default async function GalleryPage() {
   let photos: Photo[] = [];
+  let signedUrlMap = new Map<string, string>();
   let error: string | null = null;
 
   try {
-    photos = await listPhotos({ approvedOnly: true });
+    photos = await listPhotos();
+    signedUrlMap = await createSignedPhotoUrls(photos.map((photo) => photo.file_path));
   } catch (err) {
     error = err instanceof Error ? err.message : "Failed to load gallery.";
   }
@@ -42,24 +44,32 @@ export default async function GalleryPage() {
 
       {!error && photos.length > 0 && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {photos.map((photo) => (
-            <article key={photo.id} className="card overflow-hidden">
-              <div className="relative aspect-[4/5] w-full">
-                <Image
-                  src={photo.public_url}
-                  alt={photo.caption || "Engagement party photo"}
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 768px) 100vw, 33vw"
-                />
-              </div>
-              <div className="space-y-1 p-3">
-                <p className="text-sm font-semibold">{photo.guest_name || "Guest"}</p>
-                {photo.caption && <p className="text-sm text-stone-700">{photo.caption}</p>}
-                <p className="text-xs text-stone-500">{formatDateTime(photo.created_at)}</p>
-              </div>
-            </article>
-          ))}
+          {photos.map((photo) => {
+            const imageUrl = signedUrlMap.get(photo.file_path);
+            if (!imageUrl) {
+              return null;
+            }
+
+            return (
+              <article key={photo.id} className="card overflow-hidden">
+                <div className="relative aspect-[4/5] w-full overflow-hidden">
+                  <Image
+                    src={imageUrl}
+                    alt={photo.caption || "Engagement party photo"}
+                    fill
+                    className="pointer-events-none select-none object-cover"
+                    sizes="(max-width: 768px) 100vw, 33vw"
+                    draggable={false}
+                  />
+                </div>
+                <div className="space-y-1 p-3">
+                  <p className="text-sm font-semibold">{photo.guest_name || "Guest"}</p>
+                  {photo.caption && <p className="text-sm text-stone-700">{photo.caption}</p>}
+                  <p className="text-xs text-stone-500">{formatDateTime(photo.created_at)}</p>
+                </div>
+              </article>
+            );
+          })}
         </div>
       )}
     </main>

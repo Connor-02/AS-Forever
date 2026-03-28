@@ -20,6 +20,12 @@ export default function HomePage() {
             View Gallery
           </Link>
         </div>
+        <p className="mt-4 text-xs text-stone-500">
+          Hosts:{" "}
+          <Link href="/admin" className="text-rosegold hover:underline">
+            Open Admin
+          </Link>
+        </p>
       </section>
     </main>
   );

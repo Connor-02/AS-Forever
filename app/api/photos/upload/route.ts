@@ -58,15 +58,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: storageResult.error.message }, { status: 500 });
   }
 
-  const {
-    data: { publicUrl },
-  } = supabase.storage.from(PHOTOS_BUCKET).getPublicUrl(filePath);
-
   const insertResult = await supabase
     .from("photos")
     .insert({
       file_path: filePath,
-      public_url: publicUrl,
+      public_url: filePath,
       guest_name: guestName,
       caption,
       approved: true,
