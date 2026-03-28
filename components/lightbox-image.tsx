@@ -16,15 +16,18 @@ type LightboxImageProps = {
 export function LightboxImage({ photos, initialIndex }: LightboxImageProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
+  const [transitionDirection, setTransitionDirection] = useState<"next" | "prev" | null>(null);
   const touchStartXRef = useRef<number | null>(null);
 
   const currentPhoto = photos[currentIndex];
 
   const goNext = () => {
+    setTransitionDirection("next");
     setCurrentIndex((prev) => (prev + 1) % photos.length);
   };
 
   const goPrevious = () => {
+    setTransitionDirection("prev");
     setCurrentIndex((prev) => (prev - 1 + photos.length) % photos.length);
   };
 
@@ -65,6 +68,7 @@ export function LightboxImage({ photos, initialIndex }: LightboxImageProps) {
         type="button"
         onClick={() => {
           setCurrentIndex(initialIndex);
+          setTransitionDirection(null);
           setIsOpen(true);
         }}
         className="relative h-72 w-full bg-[#f8eee7] sm:h-80"
@@ -142,7 +146,24 @@ export function LightboxImage({ photos, initialIndex }: LightboxImageProps) {
               }
             }}
           >
-            <Image src={currentPhoto.src} alt={currentPhoto.alt} fill className="object-contain" sizes="100vw" />
+            <div
+              key={`${currentPhoto.src}-${currentIndex}`}
+              className={`relative h-full w-full ${
+                transitionDirection === "next"
+                  ? "lightbox-slide-next"
+                  : transitionDirection === "prev"
+                    ? "lightbox-slide-prev"
+                    : ""
+              }`}
+            >
+              <Image
+                src={currentPhoto.src}
+                alt={currentPhoto.alt}
+                fill
+                className="object-contain"
+                sizes="100vw"
+              />
+            </div>
           </div>
 
           {photos.length > 1 && (

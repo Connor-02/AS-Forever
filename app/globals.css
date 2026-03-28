@@ -92,3 +92,33 @@ body {
     transform: translateY(0);
   }
 }
+
+.lightbox-slide-next {
+  animation: lightboxSlideNext 240ms ease-out;
+}
+
+.lightbox-slide-prev {
+  animation: lightboxSlidePrev 240ms ease-out;
+}
+
+@keyframes lightboxSlideNext {
+  from {
+    opacity: 0.7;
+    transform: translateX(44px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes lightboxSlidePrev {
+  from {
+    opacity: 0.7;
+    transform: translateX(-44px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
