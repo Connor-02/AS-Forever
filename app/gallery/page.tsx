@@ -1,6 +1,6 @@
-import Image from "next/image";
 import Link from "next/link";
 import { AutoRefresh } from "@/components/auto-refresh";
+import { LightboxImage } from "@/components/lightbox-image";
 import { formatDateTime } from "@/lib/format";
 import { createSignedPhotoUrls, listPhotos } from "@/lib/photos";
 import type { Photo } from "@/lib/types";
@@ -81,16 +81,7 @@ export default async function GalleryPage() {
 
             return (
               <article key={photo.id} className="card overflow-hidden">
-                <div className="relative aspect-[4/5] w-full overflow-hidden">
-                  <Image
-                    src={imageUrl}
-                    alt={photo.caption || "Engagement party photo"}
-                    fill
-                    className="pointer-events-none select-none object-cover"
-                    sizes="(max-width: 768px) 100vw, 33vw"
-                    draggable={false}
-                  />
-                </div>
+                <LightboxImage src={imageUrl} alt={photo.caption || "Engagement party photo"} />
                 <div className="space-y-1 p-3">
                   <p className="text-sm font-semibold">{photo.guest_name || "Guest"}</p>
                   {photo.caption && <p className="text-sm text-[var(--ink-soft)]">{photo.caption}</p>}

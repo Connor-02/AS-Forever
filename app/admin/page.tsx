@@ -1,7 +1,7 @@
-import Image from "next/image";
 import { cookies } from "next/headers";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { AdminLoginForm } from "@/components/admin-login-form";
+import { LightboxImage } from "@/components/lightbox-image";
 import { ADMIN_COOKIE_NAME, verifyAdminSessionToken } from "@/lib/admin-auth";
 import { formatDateTime } from "@/lib/format";
 import { createSignedPhotoUrls, listPhotos } from "@/lib/photos";
@@ -78,15 +78,7 @@ export default async function AdminPage() {
 
             return (
               <article key={photo.id} className="card overflow-hidden">
-                <div className="relative aspect-[4/5] w-full">
-                  <Image
-                    src={imageUrl}
-                    alt={photo.caption || "Uploaded photo"}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 768px) 100vw, 33vw"
-                  />
-                </div>
+                <LightboxImage src={imageUrl} alt={photo.caption || "Uploaded photo"} />
                 <div className="space-y-2 p-3">
                   <div className="flex items-center justify-between gap-2">
                     <p className="truncate text-sm font-semibold">{photo.guest_name || "Guest"}</p>
