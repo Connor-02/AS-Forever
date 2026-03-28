@@ -4,6 +4,8 @@ import { formatDateTime } from "@/lib/format";
 import { createSignedPhotoUrls, listPhotos } from "@/lib/photos";
 import type { Photo } from "@/lib/types";
 
+export const dynamic = "force-dynamic";
+
 export default async function GalleryPage() {
   let photos: Photo[] = [];
   let signedUrlMap = new Map<string, string>();
