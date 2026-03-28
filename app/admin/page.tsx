@@ -25,6 +25,19 @@ export default async function AdminPage() {
   const photos = await listPhotos();
   const signedUrlMap = await createSignedPhotoUrls(photos.map((photo) => photo.file_path));
   const visiblePhotos = photos.filter((photo) => signedUrlMap.has(photo.file_path));
+  const lightboxPhotos = visiblePhotos
+    .map((photo) => {
+      const imageUrl = signedUrlMap.get(photo.file_path);
+      if (!imageUrl) {
+        return null;
+      }
+      return {
+        src: imageUrl,
+        alt: photo.caption || "Uploaded photo",
+      };
+    })
+    .filter((photo): photo is { src: string; alt: string } => photo !== null);
+
   const recentUploads = visiblePhotos.filter((photo) => {
     const uploadedAt = new Date(photo.created_at).getTime();
     return Date.now() - uploadedAt <= 60 * 60 * 1000;
@@ -70,7 +83,7 @@ export default async function AdminPage() {
 
       {visiblePhotos.length > 0 && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {visiblePhotos.map((photo) => {
+          {visiblePhotos.map((photo, index) => {
             const imageUrl = signedUrlMap.get(photo.file_path);
             if (!imageUrl) {
               return null;
@@ -78,7 +91,7 @@ export default async function AdminPage() {
 
             return (
               <article key={photo.id} className="card overflow-hidden">
-                <LightboxImage src={imageUrl} alt={photo.caption || "Uploaded photo"} />
+                <LightboxImage photos={lightboxPhotos} initialIndex={index} />
                 <div className="space-y-2 p-3">
                   <div className="flex items-center justify-between gap-2">
                     <p className="truncate text-sm font-semibold">{photo.guest_name || "Guest"}</p>

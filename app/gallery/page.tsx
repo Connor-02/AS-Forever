@@ -20,6 +20,18 @@ export default async function GalleryPage() {
   }
 
   const visiblePhotos = photos.filter((photo) => signedUrlMap.has(photo.file_path));
+  const lightboxPhotos = visiblePhotos
+    .map((photo) => {
+      const imageUrl = signedUrlMap.get(photo.file_path);
+      if (!imageUrl) {
+        return null;
+      }
+      return {
+        src: imageUrl,
+        alt: photo.caption || "Engagement party photo",
+      };
+    })
+    .filter((photo): photo is { src: string; alt: string } => photo !== null);
 
   return (
     <main className="shell page-fade-in py-6 sm:py-10">
@@ -73,7 +85,7 @@ export default async function GalleryPage() {
 
       {!error && visiblePhotos.length > 0 && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {visiblePhotos.map((photo) => {
+          {visiblePhotos.map((photo, index) => {
             const imageUrl = signedUrlMap.get(photo.file_path);
             if (!imageUrl) {
               return null;
@@ -81,7 +93,7 @@ export default async function GalleryPage() {
 
             return (
               <article key={photo.id} className="card overflow-hidden">
-                <LightboxImage src={imageUrl} alt={photo.caption || "Engagement party photo"} />
+                <LightboxImage photos={lightboxPhotos} initialIndex={index} />
                 <div className="space-y-1 p-3">
                   <p className="text-sm font-semibold">{photo.guest_name || "Guest"}</p>
                   {photo.caption && <p className="text-sm text-[var(--ink-soft)]">{photo.caption}</p>}
