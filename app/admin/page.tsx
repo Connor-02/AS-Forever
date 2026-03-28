@@ -24,7 +24,8 @@ export default async function AdminPage() {
 
   const photos = await listPhotos();
   const signedUrlMap = await createSignedPhotoUrls(photos.map((photo) => photo.file_path));
-  const recentUploads = photos.filter((photo) => {
+  const visiblePhotos = photos.filter((photo) => signedUrlMap.has(photo.file_path));
+  const recentUploads = visiblePhotos.filter((photo) => {
     const uploadedAt = new Date(photo.created_at).getTime();
     return Date.now() - uploadedAt <= 60 * 60 * 1000;
   }).length;
@@ -46,7 +47,7 @@ export default async function AdminPage() {
         <div className="mt-4 grid grid-cols-2 gap-3 sm:max-w-sm">
           <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] p-3">
             <p className="text-xs text-stone-500">Total uploads</p>
-            <p className="text-xl font-semibold">{photos.length}</p>
+            <p className="text-xl font-semibold">{visiblePhotos.length}</p>
           </div>
           <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] p-3">
             <p className="text-xs text-stone-500">Last 60 mins</p>
@@ -58,7 +59,7 @@ export default async function AdminPage() {
         </div>
       </div>
 
-      {photos.length === 0 && (
+      {visiblePhotos.length === 0 && (
         <section className="card p-8 text-center">
           <h2 className="font-[var(--font-serif)] text-2xl font-semibold">No uploads yet</h2>
           <p className="mt-2 text-sm text-[var(--ink-soft)]">
@@ -67,9 +68,9 @@ export default async function AdminPage() {
         </section>
       )}
 
-      {photos.length > 0 && (
+      {visiblePhotos.length > 0 && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {photos.map((photo) => {
+          {visiblePhotos.map((photo) => {
             const imageUrl = signedUrlMap.get(photo.file_path);
             if (!imageUrl) {
               return null;

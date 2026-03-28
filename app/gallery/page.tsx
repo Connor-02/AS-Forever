@@ -19,6 +19,8 @@ export default async function GalleryPage() {
     error = err instanceof Error ? err.message : "Failed to load gallery.";
   }
 
+  const visiblePhotos = photos.filter((photo) => signedUrlMap.has(photo.file_path));
+
   return (
     <main className="shell page-fade-in py-6 sm:py-10">
       <div className="mb-5 flex items-center justify-between gap-2">
@@ -42,7 +44,7 @@ export default async function GalleryPage() {
             </p>
           </div>
           <div className="text-right">
-            <p className="text-xl font-semibold">{photos.length}</p>
+            <p className="text-xl font-semibold">{visiblePhotos.length}</p>
             <p className="text-xs text-stone-500">Total photos</p>
           </div>
         </div>
@@ -57,7 +59,7 @@ export default async function GalleryPage() {
         </p>
       )}
 
-      {!error && photos.length === 0 && (
+      {!error && visiblePhotos.length === 0 && (
         <section className="card p-8 text-center">
           <h2 className="font-[var(--font-serif)] text-2xl font-semibold">No photos yet</h2>
           <p className="mt-2 text-sm text-[var(--ink-soft)]">
@@ -69,9 +71,9 @@ export default async function GalleryPage() {
         </section>
       )}
 
-      {!error && photos.length > 0 && (
+      {!error && visiblePhotos.length > 0 && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {photos.map((photo) => {
+          {visiblePhotos.map((photo) => {
             const imageUrl = signedUrlMap.get(photo.file_path);
             if (!imageUrl) {
               return null;
