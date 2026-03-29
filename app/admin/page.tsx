@@ -4,6 +4,7 @@ import { AdminLoginForm } from "@/components/admin-login-form";
 import { LightboxImage } from "@/components/lightbox-image";
 import { ADMIN_COOKIE_NAME, verifyAdminSessionToken } from "@/lib/admin-auth";
 import { formatDateTime } from "@/lib/format";
+import { getMediaKindFromPath } from "@/lib/media";
 import { createSignedPhotoUrls, listPhotos } from "@/lib/photos";
 import { deletePhotoAction, logoutAction } from "./actions";
 
@@ -34,9 +35,10 @@ export default async function AdminPage() {
       return {
         src: imageUrl,
         alt: photo.caption || "Uploaded photo",
+        kind: getMediaKindFromPath(photo.file_path),
       };
     })
-    .filter((photo): photo is { src: string; alt: string } => photo !== null);
+    .filter((photo): photo is { src: string; alt: string; kind: "image" | "video" } => photo !== null);
 
   const recentUploads = visiblePhotos.filter((photo) => {
     const uploadedAt = new Date(photo.created_at).getTime();
@@ -91,7 +93,7 @@ export default async function AdminPage() {
 
             return (
               <article key={photo.id} className="card overflow-hidden">
-                <LightboxImage photos={lightboxPhotos} initialIndex={index} />
+                <LightboxImage media={lightboxPhotos} initialIndex={index} />
                 <div className="space-y-2 p-3">
                   <div className="flex items-center justify-between gap-2">
                     <p className="truncate text-sm font-semibold">{photo.guest_name || "Guest"}</p>

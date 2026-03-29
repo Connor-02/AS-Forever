@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { LightboxImage } from "@/components/lightbox-image";
 import { formatDateTime } from "@/lib/format";
+import { getMediaKindFromPath } from "@/lib/media";
 import { createSignedPhotoUrls, listPhotos } from "@/lib/photos";
 import type { Photo } from "@/lib/types";
 //Forced dynamic
@@ -29,9 +30,10 @@ export default async function GalleryPage() {
       return {
         src: imageUrl,
         alt: photo.caption || "Engagement party photo",
+        kind: getMediaKindFromPath(photo.file_path),
       };
     })
-    .filter((photo): photo is { src: string; alt: string } => photo !== null);
+    .filter((photo): photo is { src: string; alt: string; kind: "image" | "video" } => photo !== null);
 
   return (
     <main className="shell page-fade-in py-6 sm:py-10">
@@ -57,7 +59,7 @@ export default async function GalleryPage() {
           </div>
           <div className="text-right">
             <p className="text-xl font-semibold">{visiblePhotos.length}</p>
-            <p className="text-xs text-stone-500">Total photos</p>
+            <p className="text-xs text-stone-500">Total media</p>
           </div>
         </div>
         <div className="mt-3">
@@ -93,7 +95,7 @@ export default async function GalleryPage() {
 
             return (
               <article key={photo.id} className="card overflow-hidden">
-                <LightboxImage photos={lightboxPhotos} initialIndex={index} />
+                <LightboxImage media={lightboxPhotos} initialIndex={index} />
                 <div className="space-y-1 p-3">
                   <p className="text-sm font-semibold">{photo.guest_name || "Guest"}</p>
                   {photo.caption && <p className="text-sm text-[var(--ink-soft)]">{photo.caption}</p>}

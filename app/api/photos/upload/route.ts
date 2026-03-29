@@ -1,6 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
-import { MAX_UPLOAD_SIZE_BYTES, PHOTOS_BUCKET } from "@/lib/constants";
+import {
+  MAX_IMAGE_UPLOAD_SIZE_BYTES,
+  MAX_VIDEO_UPLOAD_SIZE_BYTES,
+  PHOTOS_BUCKET,
+} from "@/lib/constants";
+import { getMediaKindFromType } from "@/lib/media";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -22,61 +27,87 @@ function getFileExtension(fileName: string) {
   return (extension || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
+function validateMediaFile(file: File) {
+  const kind = getMediaKindFromType(file.type);
+  if (kind === "unsupported") {
+    return "Only image and video uploads are allowed.";
+  }
+
+  if (kind === "image" && file.size > MAX_IMAGE_UPLOAD_SIZE_BYTES) {
+    return "Images must be 10MB or less.";
+  }
+
+  if (kind === "video" && file.size > MAX_VIDEO_UPLOAD_SIZE_BYTES) {
+    return "Videos must be 50MB or less.";
+  }
+
+  return null;
+}
+
 export async function POST(request: Request) {
   const formData = await request.formData();
-  const image = formData.get("image");
+  const mediaFiles = formData.getAll("media").filter((item): item is File => item instanceof File);
 
-  if (!(image instanceof File)) {
-    return NextResponse.json({ message: "Image file is required." }, { status: 400 });
+  if (mediaFiles.length === 0) {
+    return NextResponse.json({ message: "At least one image or video file is required." }, { status: 400 });
   }
 
-  if (!image.type.startsWith("image/")) {
-    return NextResponse.json({ message: "Only image uploads are allowed." }, { status: 400 });
-  }
-
-  if (image.size > MAX_UPLOAD_SIZE_BYTES) {
-    return NextResponse.json({ message: "Max upload size is 10MB." }, { status: 400 });
+  for (const file of mediaFiles) {
+    const validationError = validateMediaFile(file);
+    if (validationError) {
+      return NextResponse.json({ message: validationError }, { status: 400 });
+    }
   }
 
   const guestName = cleanOptionalText(formData.get("guest_name"), 80);
   const caption = cleanOptionalText(formData.get("caption"), 280);
 
-  const filePath = `${new Date().toISOString().slice(0, 10)}/${randomUUID()}.${getFileExtension(
-    image.name,
-  )}`;
-
   const supabase = createSupabaseServerClient();
-  const buffer = Buffer.from(await image.arrayBuffer());
+  const uploadedPaths: string[] = [];
 
-  const storageResult = await supabase.storage.from(PHOTOS_BUCKET).upload(filePath, buffer, {
-    contentType: image.type,
-    cacheControl: "3600",
-    upsert: false,
-  });
+  try {
+    for (const media of mediaFiles) {
+      const filePath = `${new Date().toISOString().slice(0, 10)}/${randomUUID()}.${getFileExtension(
+        media.name,
+      )}`;
 
-  if (storageResult.error) {
-    return NextResponse.json({ message: storageResult.error.message }, { status: 500 });
-  }
+      const buffer = Buffer.from(await media.arrayBuffer());
+      const storageResult = await supabase.storage.from(PHOTOS_BUCKET).upload(filePath, buffer, {
+        contentType: media.type,
+        cacheControl: "3600",
+        upsert: false,
+      });
 
-  const insertResult = await supabase
-    .from("photos")
-    .insert({
-      file_path: filePath,
-      public_url: filePath,
-      guest_name: guestName,
-      caption,
-      approved: true,
-    })
-    .select("id")
-    .single();
+      if (storageResult.error) {
+        throw new Error(storageResult.error.message);
+      }
 
-  if (insertResult.error) {
-    await supabase.storage.from(PHOTOS_BUCKET).remove([filePath]);
-    return NextResponse.json({ message: insertResult.error.message }, { status: 500 });
+      uploadedPaths.push(filePath);
+
+      const insertResult = await supabase.from("photos").insert({
+        file_path: filePath,
+        public_url: filePath,
+        guest_name: guestName,
+        caption,
+        approved: true,
+      });
+
+      if (insertResult.error) {
+        throw new Error(insertResult.error.message);
+      }
+    }
+  } catch (error) {
+    if (uploadedPaths.length > 0) {
+      await supabase.storage.from(PHOTOS_BUCKET).remove(uploadedPaths);
+      await supabase.from("photos").delete().in("file_path", uploadedPaths);
+    }
+
+    const message = error instanceof Error ? error.message : "Upload failed.";
+    return NextResponse.json({ message }, { status: 500 });
   }
 
   return NextResponse.json({
-    message: "Upload successful.",
-    id: insertResult.data.id,
+    message: `${mediaFiles.length} upload${mediaFiles.length > 1 ? "s" : ""} successful.`,
+    uploadedCount: mediaFiles.length,
   });
 }

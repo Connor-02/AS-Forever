@@ -3,22 +3,31 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { MAX_UPLOAD_SIZE_BYTES } from "@/lib/constants";
+import { MAX_IMAGE_UPLOAD_SIZE_BYTES, MAX_VIDEO_UPLOAD_SIZE_BYTES } from "@/lib/constants";
+import { getMediaKindFromType } from "@/lib/media";
 
 type UploadResponse = {
   message?: string;
+  uploadedCount?: number;
 };
 
 function bytesToMb(bytes: number) {
   return (bytes / (1024 * 1024)).toFixed(1);
 }
 
+type PreviewItem = {
+  file: File;
+  url: string;
+  kind: "image" | "video";
+};
+
 export function UploadForm() {
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
+  const selectedItemsRef = useRef<PreviewItem[]>([]);
 
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [selectedItems, setSelectedItems] = useState<PreviewItem[]>([]);
   const [guestName, setGuestName] = useState("");
   const [caption, setCaption] = useState("");
   const [progress, setProgress] = useState(0);
@@ -27,45 +36,65 @@ export function UploadForm() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
 
-  useEffect(() => {
-    if (!selectedFile) {
-      setPreviewUrl(null);
-      return;
+  const clearPreviewUrls = (items: PreviewItem[]) => {
+    for (const preview of items) {
+      URL.revokeObjectURL(preview.url);
     }
+  };
 
-    const objectUrl = URL.createObjectURL(selectedFile);
-    setPreviewUrl(objectUrl);
+  useEffect(() => {
+    selectedItemsRef.current = selectedItems;
+  }, [selectedItems]);
 
+  useEffect(() => {
     return () => {
-      URL.revokeObjectURL(objectUrl);
+      clearPreviewUrls(selectedItemsRef.current);
     };
-  }, [selectedFile]);
+  }, []);
 
   const validateClientFile = (file: File) => {
-    if (!file.type.startsWith("image/")) {
-      return "Only image files are allowed.";
+    const kind = getMediaKindFromType(file.type);
+    if (kind === "unsupported") {
+      return "Only image and video files are allowed.";
     }
-    if (file.size > MAX_UPLOAD_SIZE_BYTES) {
-      return `Image exceeds 10MB (selected: ${bytesToMb(file.size)}MB).`;
+
+    if (kind === "image" && file.size > MAX_IMAGE_UPLOAD_SIZE_BYTES) {
+      return `Image ${file.name} exceeds 10MB.`;
+    }
+    if (kind === "video" && file.size > MAX_VIDEO_UPLOAD_SIZE_BYTES) {
+      return `Video ${file.name} exceeds 50MB.`;
     }
     return null;
   };
 
-  const onFileSelected = (file: File | null) => {
-    if (!file) {
+  const onFilesSelected = (files: FileList | null) => {
+    if (!files || files.length === 0) {
       return;
     }
-    const validationError = validateClientFile(file);
-    setSuccessMessage(null);
-    setErrorMessage(validationError);
-    setProgress(0);
-    if (!validationError) {
-      setSelectedFile(file);
+
+    const nextFiles = Array.from(files);
+    for (const file of nextFiles) {
+      const validationError = validateClientFile(file);
+      if (validationError) {
+        setErrorMessage(validationError);
+        return;
+      }
     }
+
+    setSuccessMessage(null);
+    setErrorMessage(null);
+    setProgress(0);
+    const nextItems = nextFiles.map((file) => ({
+      file,
+      kind: getMediaKindFromType(file.type) as "image" | "video",
+      url: URL.createObjectURL(file),
+    }));
+    setSelectedItems((prev) => [...prev, ...nextItems]);
   };
 
   const resetForm = () => {
-    setSelectedFile(null);
+    clearPreviewUrls(selectedItems);
+    setSelectedItems([]);
     setGuestName("");
     setCaption("");
     setProgress(0);
@@ -75,17 +104,32 @@ export function UploadForm() {
     if (galleryInputRef.current) {
       galleryInputRef.current.value = "";
     }
+    if (videoInputRef.current) {
+      videoInputRef.current.value = "";
+    }
+  };
+
+  const removeSelectedFile = (index: number) => {
+    setSelectedItems((prev) => {
+      const item = prev[index];
+      if (item) {
+        URL.revokeObjectURL(item.url);
+      }
+      return prev.filter((_, i) => i !== index);
+    });
   };
 
   const upload = () => {
-    if (!selectedFile || isUploading) {
+    if (selectedItems.length === 0 || isUploading) {
       return;
     }
 
-    const validationError = validateClientFile(selectedFile);
-    if (validationError) {
-      setErrorMessage(validationError);
-      return;
+    for (const { file } of selectedItems) {
+      const validationError = validateClientFile(file);
+      if (validationError) {
+        setErrorMessage(validationError);
+        return;
+      }
     }
 
     setIsUploading(true);
@@ -94,7 +138,9 @@ export function UploadForm() {
     setProgress(0);
 
     const formData = new FormData();
-    formData.append("image", selectedFile);
+    for (const { file } of selectedItems) {
+      formData.append("media", file);
+    }
     formData.append("guest_name", guestName.trim());
     formData.append("caption", caption.trim());
 
@@ -130,7 +176,9 @@ export function UploadForm() {
 
       setIsUploading(false);
       setProgress(100);
-      setSuccessMessage("Thank you for sharing this moment.");
+      setSuccessMessage(
+        payload.message ?? `${selectedItems.length} upload${selectedItems.length > 1 ? "s" : ""} completed.`,
+      );
       resetForm();
     };
 
@@ -138,11 +186,11 @@ export function UploadForm() {
   };
 
   return (
-    <section className="card mx-auto w-full max-w-xl p-5 sm:p-7">
+    <section className="card mx-auto w-full max-w-2xl p-5 sm:p-7">
       <div className="mb-5">
-        <h2 className="font-[var(--font-serif)] text-2xl font-semibold">Photo Upload</h2>
+        <h2 className="font-[var(--font-serif)] text-2xl font-semibold">Photo and Video Upload</h2>
         <p className="mt-2 text-sm text-[var(--ink-soft)]">
-          Camera permission is requested only when you tap Take Photo.
+          Share multiple moments at once. Camera permissions are requested only when you tap capture.
         </p>
       </div>
 
@@ -152,17 +200,26 @@ export function UploadForm() {
         accept="image/*"
         capture="environment"
         className="hidden"
-        onChange={(event) => onFileSelected(event.target.files?.[0] ?? null)}
+        onChange={(event) => onFilesSelected(event.target.files)}
+      />
+      <input
+        ref={videoInputRef}
+        type="file"
+        accept="video/*"
+        capture="environment"
+        className="hidden"
+        onChange={(event) => onFilesSelected(event.target.files)}
       />
       <input
         ref={galleryInputRef}
         type="file"
-        accept="image/*"
+        accept="image/*,video/*"
+        multiple
         className="hidden"
-        onChange={(event) => onFileSelected(event.target.files?.[0] ?? null)}
+        onChange={(event) => onFilesSelected(event.target.files)}
       />
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <button
           type="button"
           className="button-primary w-full"
@@ -174,10 +231,18 @@ export function UploadForm() {
         <button
           type="button"
           className="button-secondary w-full"
+          onClick={() => videoInputRef.current?.click()}
+          disabled={isUploading}
+        >
+          Record Video
+        </button>
+        <button
+          type="button"
+          className="button-secondary w-full"
           onClick={() => galleryInputRef.current?.click()}
           disabled={isUploading}
         >
-          Choose from Gallery
+          Choose Multiple
         </button>
       </div>
 
@@ -193,26 +258,50 @@ export function UploadForm() {
         onDrop={(event) => {
           event.preventDefault();
           setIsDragOver(false);
-          onFileSelected(event.dataTransfer.files?.[0] ?? null);
+          onFilesSelected(event.dataTransfer.files);
         }}
       >
-        <p className="text-sm font-medium">Drag and drop on desktop, or use the buttons above.</p>
-        <p className="mt-1 text-xs text-stone-500">Images only, up to 10MB</p>
+        <p className="text-sm font-medium">Drag and drop media here on desktop.</p>
+        <p className="mt-1 text-xs text-stone-500">
+          Images up to 10MB, videos up to 50MB. You can select multiple files.
+        </p>
       </div>
 
       <div className="mt-4 rounded-2xl border border-[var(--border)] bg-white p-3">
-        {selectedFile && previewUrl ? (
-          <div className="space-y-2">
-            <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl">
-              <Image src={previewUrl} alt="Selected preview" fill className="object-cover" />
+        {selectedItems.length > 0 ? (
+          <div className="space-y-3">
+            <p className="text-sm font-medium">{selectedItems.length} file(s) selected</p>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {selectedItems.map((preview, index) => (
+                <article key={`${preview.file.name}-${index}`} className="rounded-xl border border-[var(--border)] p-2">
+                  <div className="relative h-24 w-full overflow-hidden rounded-lg bg-[#f8eee7]">
+                    {preview.kind === "image" ? (
+                      <Image
+                        src={preview.url}
+                        alt={preview.file.name}
+                        fill
+                        className="object-contain"
+                        sizes="120px"
+                      />
+                    ) : (
+                      <video src={preview.url} className="h-full w-full object-contain" muted playsInline />
+                    )}
+                  </div>
+                  <p className="mt-2 line-clamp-1 text-xs font-medium">{preview.file.name}</p>
+                  <p className="text-xs text-stone-500">{bytesToMb(preview.file.size)}MB</p>
+                  <button
+                    type="button"
+                    className="mt-2 w-full rounded-lg border border-[var(--border)] px-2 py-1 text-xs"
+                    onClick={() => removeSelectedFile(index)}
+                  >
+                    Remove
+                  </button>
+                </article>
+              ))}
             </div>
-            <p className="text-sm">
-              Selected: <span className="font-semibold">{selectedFile.name}</span> (
-              {bytesToMb(selectedFile.size)}MB)
-            </p>
           </div>
         ) : (
-          <p className="text-sm text-stone-600">No image selected yet.</p>
+          <p className="text-sm text-stone-600">No media selected yet.</p>
         )}
       </div>
 
@@ -265,7 +354,7 @@ export function UploadForm() {
           <p className="text-sm font-medium text-emerald-700">{successMessage}</p>
           <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
             <button type="button" onClick={resetForm} className="button-secondary w-full">
-              Upload Another
+              Upload More
             </button>
             <Link href="/gallery" className="button-primary w-full">
               View Gallery
@@ -278,9 +367,11 @@ export function UploadForm() {
         type="button"
         onClick={upload}
         className="button-primary mt-5 w-full"
-        disabled={!selectedFile || isUploading}
+        disabled={selectedItems.length === 0 || isUploading}
       >
-        {isUploading ? "Uploading..." : "Upload Photo"}
+        {isUploading
+          ? "Uploading..."
+          : `Upload ${selectedItems.length || ""} Item${selectedItems.length === 1 ? "" : "s"}`.trim()}
       </button>
     </section>
   );

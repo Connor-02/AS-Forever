@@ -10,11 +10,11 @@ export default function UploadPage() {
       <section className="mx-auto mb-5 w-full max-w-xl">
         <p className="soft-pill">Share a Memory</p>
         <h1 className="mt-3 font-[var(--font-serif)] text-3xl font-semibold sm:text-4xl">
-          Add your photos in seconds
+          Add your photos and videos in seconds
         </h1>
         <p className="mt-2 text-sm text-[var(--ink-soft)]">
-          Choose camera or gallery, then tap upload. You can add your name and a short message if
-          you want.
+          Choose camera, record video, or select multiple files from your gallery. You can add your
+          name and a short message if you want.
         </p>
       </section>
       <UploadForm />

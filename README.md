@@ -1,8 +1,8 @@
-# Engagement Party Photo Platform
+# Engagement Party Media Platform
 
-A mobile-first MVP for collecting engagement party photos in real time.
+A mobile-first MVP for collecting engagement party photos and videos in real time.
 
-Guests scan a QR code, upload photos from their phone camera or gallery, and hosts manage everything from a protected admin page.
+Guests scan a QR code, upload media from their phone camera or gallery, and hosts manage everything from a protected admin page.
 
 ## Why This Project
 
@@ -14,7 +14,7 @@ This platform is designed for events where guests need a simple, no-friction upl
 
 - Scan event QR code
 - Open `/upload`
-- Take a photo or choose one from gallery
+- Take a photo, record a video, or choose multiple media files from gallery
 - Optionally add name and caption
 - Upload with progress feedback and success/error states
 
@@ -23,11 +23,11 @@ This platform is designed for events where guests need a simple, no-friction upl
 - Open `/admin`
 - Sign in with env-based admin password
 - View all uploads (newest first)
-- Delete photos (removes storage object + database record)
+- Delete uploads (removes storage object + database record)
 
 ### Public Gallery (Optional)
 
-- `/gallery` displays all uploaded photos in a view-only format
+- `/gallery` displays all uploaded media in a view-only format
 
 ## Routes
 
@@ -67,6 +67,10 @@ Use this bucket as **private** so files are not directly downloadable via public
 3. Add a storage policy allowing `service_role` to manage objects in `event-photos`.
 
 The app handles viewing through short-lived signed URLs and keeps original file downloads on admin-only routes.
+
+Upload limits:
+- Images: up to 10MB each
+- Videos: up to 50MB each
 
 ## Local Development
 

@@ -11,8 +11,8 @@ export default function HomePage() {
               Capture every candid moment from tonight
             </h1>
             <p className="mt-4 max-w-xl text-sm leading-relaxed text-[var(--ink-soft)] sm:text-base">
-              Scan, snap, and share in seconds. Every guest photo appears in the live gallery so
-              everyone can relive the celebration together.
+              Scan, snap, and share in seconds. Upload photos or short videos and watch the live
+              gallery fill with the celebration.
             </p>
             <div className="mt-7 flex flex-col gap-3 sm:flex-row">
               <Link href="/upload" className="button-primary">

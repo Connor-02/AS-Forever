@@ -3,32 +3,33 @@
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 
-type LightboxPhoto = {
+type LightboxMedia = {
   src: string;
   alt: string;
+  kind: "image" | "video";
 };
 
-type LightboxImageProps = {
-  photos: LightboxPhoto[];
+type LightboxMediaProps = {
+  media: LightboxMedia[];
   initialIndex: number;
 };
 
-export function LightboxImage({ photos, initialIndex }: LightboxImageProps) {
+export function LightboxImage({ media, initialIndex }: LightboxMediaProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [transitionDirection, setTransitionDirection] = useState<"next" | "prev" | null>(null);
   const touchStartXRef = useRef<number | null>(null);
 
-  const currentPhoto = photos[currentIndex];
+  const currentItem = media[currentIndex];
 
   const goNext = () => {
     setTransitionDirection("next");
-    setCurrentIndex((prev) => (prev + 1) % photos.length);
+    setCurrentIndex((prev) => (prev + 1) % media.length);
   };
 
   const goPrevious = () => {
     setTransitionDirection("prev");
-    setCurrentIndex((prev) => (prev - 1 + photos.length) % photos.length);
+    setCurrentIndex((prev) => (prev - 1 + media.length) % media.length);
   };
 
   useEffect(() => {
@@ -56,9 +57,9 @@ export function LightboxImage({ photos, initialIndex }: LightboxImageProps) {
       document.body.style.overflow = originalOverflow;
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [isOpen, photos.length]);
+  }, [isOpen, media.length]);
 
-  if (!currentPhoto) {
+  if (!currentItem) {
     return null;
   }
 
@@ -72,9 +73,19 @@ export function LightboxImage({ photos, initialIndex }: LightboxImageProps) {
           setIsOpen(true);
         }}
         className="relative h-72 w-full bg-[#f8eee7] sm:h-80"
-        aria-label="Open image fullscreen"
+        aria-label="Open media fullscreen"
       >
-        <Image src={currentPhoto.src} alt={currentPhoto.alt} fill className="object-contain" sizes="100vw" />
+        {currentItem.kind === "image" ? (
+          <Image src={currentItem.src} alt={currentItem.alt} fill className="object-contain" sizes="100vw" />
+        ) : (
+          <video
+            src={currentItem.src}
+            className="h-full w-full object-contain"
+            muted
+            playsInline
+            preload="metadata"
+          />
+        )}
       </button>
 
       {isOpen && (
@@ -92,7 +103,7 @@ export function LightboxImage({ photos, initialIndex }: LightboxImageProps) {
             Close
           </button>
 
-          {photos.length > 1 && (
+          {media.length > 1 && (
             <>
               <button
                 type="button"
@@ -101,7 +112,7 @@ export function LightboxImage({ photos, initialIndex }: LightboxImageProps) {
                   goPrevious();
                 }}
                 className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full border border-white/40 bg-black/30 px-3 py-2 text-sm font-semibold text-white"
-                aria-label="Previous photo"
+                aria-label="Previous media"
               >
                 Prev
               </button>
@@ -112,7 +123,7 @@ export function LightboxImage({ photos, initialIndex }: LightboxImageProps) {
                   goNext();
                 }}
                 className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full border border-white/40 bg-black/30 px-3 py-2 text-sm font-semibold text-white"
-                aria-label="Next photo"
+                aria-label="Next media"
               >
                 Next
               </button>
@@ -147,7 +158,7 @@ export function LightboxImage({ photos, initialIndex }: LightboxImageProps) {
             }}
           >
             <div
-              key={`${currentPhoto.src}-${currentIndex}`}
+              key={`${currentItem.src}-${currentIndex}`}
               className={`relative h-full w-full ${
                 transitionDirection === "next"
                   ? "lightbox-slide-next"
@@ -156,19 +167,29 @@ export function LightboxImage({ photos, initialIndex }: LightboxImageProps) {
                     : ""
               }`}
             >
-              <Image
-                src={currentPhoto.src}
-                alt={currentPhoto.alt}
-                fill
-                className="object-contain"
-                sizes="100vw"
-              />
+              {currentItem.kind === "image" ? (
+                <Image
+                  src={currentItem.src}
+                  alt={currentItem.alt}
+                  fill
+                  className="object-contain"
+                  sizes="100vw"
+                />
+              ) : (
+                <video
+                  src={currentItem.src}
+                  className="h-full w-full object-contain"
+                  controls
+                  autoPlay
+                  playsInline
+                />
+              )}
             </div>
           </div>
 
-          {photos.length > 1 && (
+          {media.length > 1 && (
             <p className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-black/40 px-3 py-1 text-xs text-white">
-              {currentIndex + 1} / {photos.length}
+              {currentIndex + 1} / {media.length}
             </p>
           )}
         </div>
