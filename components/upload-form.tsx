@@ -119,7 +119,57 @@ export function UploadForm() {
     });
   };
 
-  const upload = () => {
+  const uploadSingleFile = (
+    file: File,
+    fileIndex: number,
+    totalFiles: number,
+    guest: string,
+    note: string,
+  ) =>
+    new Promise<void>((resolve, reject) => {
+      const formData = new FormData();
+      formData.append("media", file);
+      formData.append("guest_name", guest);
+      formData.append("caption", note);
+
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", "/api/photos/upload");
+
+      xhr.upload.onprogress = (event) => {
+        if (!event.lengthComputable) {
+          return;
+        }
+        const perFileProgress = event.loaded / event.total;
+        const overall = ((fileIndex + perFileProgress) / totalFiles) * 100;
+        setProgress(Math.min(100, Math.round(overall)));
+      };
+
+      xhr.onerror = () => {
+        reject(new Error("Network error"));
+      };
+
+      xhr.onload = () => {
+        const statusOk = xhr.status >= 200 && xhr.status < 300;
+        let payload: UploadResponse = {};
+
+        try {
+          payload = JSON.parse(xhr.responseText) as UploadResponse;
+        } catch {
+          payload = {};
+        }
+
+        if (!statusOk) {
+          reject(new Error(payload.message ?? "Upload failed."));
+          return;
+        }
+
+        resolve();
+      };
+
+      xhr.send(formData);
+    });
+
+  const upload = async () => {
     if (selectedItems.length === 0 || isUploading) {
       return;
     }
@@ -137,52 +187,37 @@ export function UploadForm() {
     setSuccessMessage(null);
     setProgress(0);
 
-    const formData = new FormData();
-    for (const { file } of selectedItems) {
-      formData.append("media", file);
-    }
-    formData.append("guest_name", guestName.trim());
-    formData.append("caption", caption.trim());
+    const guest = guestName.trim();
+    const note = caption.trim();
+    const failedFiles: string[] = [];
 
-    const xhr = new XMLHttpRequest();
-    xhr.open("POST", "/api/photos/upload");
-
-    xhr.upload.onprogress = (event) => {
-      if (event.lengthComputable) {
-        setProgress(Math.round((event.loaded / event.total) * 100));
-      }
-    };
-
-    xhr.onerror = () => {
-      setErrorMessage("Upload failed. Please try again.");
-      setIsUploading(false);
-    };
-
-    xhr.onload = () => {
-      const statusOk = xhr.status >= 200 && xhr.status < 300;
-      let payload: UploadResponse = {};
-
+    for (let index = 0; index < selectedItems.length; index += 1) {
+      const item = selectedItems[index];
       try {
-        payload = JSON.parse(xhr.responseText) as UploadResponse;
+        await uploadSingleFile(item.file, index, selectedItems.length, guest, note);
       } catch {
-        payload = {};
+        failedFiles.push(item.file.name);
       }
+    }
 
-      if (!statusOk) {
-        setErrorMessage(payload.message ?? "Upload failed. Please try again.");
-        setIsUploading(false);
-        return;
-      }
+    const uploadedCount = selectedItems.length - failedFiles.length;
+    setIsUploading(false);
+    setProgress(100);
 
-      setIsUploading(false);
-      setProgress(100);
+    if (uploadedCount > 0) {
       setSuccessMessage(
-        payload.message ?? `${selectedItems.length} upload${selectedItems.length > 1 ? "s" : ""} completed.`,
+        `${uploadedCount} file${uploadedCount === 1 ? "" : "s"} uploaded successfully.`,
       );
-      resetForm();
-    };
+    }
 
-    xhr.send(formData);
+    if (failedFiles.length > 0) {
+      setErrorMessage(
+        `${failedFiles.length} file${failedFiles.length === 1 ? "" : "s"} failed to upload.`,
+      );
+      return;
+    }
+
+    resetForm();
   };
 
   return (
@@ -263,7 +298,7 @@ export function UploadForm() {
       >
         <p className="text-sm font-medium">Drag and drop media here on desktop.</p>
         <p className="mt-1 text-xs text-stone-500">
-          Images up to 10MB, videos up to 50MB. You can select multiple files.
+          Images up to 10MB, videos up to 50MB. Select as many files as you want.
         </p>
       </div>
 
