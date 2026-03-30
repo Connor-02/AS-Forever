@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { MAX_IMAGE_UPLOAD_SIZE_BYTES, MAX_VIDEO_UPLOAD_SIZE_BYTES } from "@/lib/constants";
-import { getMediaKindFromType } from "@/lib/media";
+import { getMediaKindFromFileMeta } from "@/lib/media";
 
 type UploadResponse = {
   message?: string;
@@ -53,7 +53,7 @@ export function UploadForm() {
   }, []);
 
   const validateClientFile = (file: File) => {
-    const kind = getMediaKindFromType(file.type);
+    const kind = getMediaKindFromFileMeta(file.name, file.type);
     if (kind === "unsupported") {
       return "Only image and video files are allowed.";
     }
@@ -86,7 +86,7 @@ export function UploadForm() {
     setProgress(0);
     const nextItems = nextFiles.map((file) => ({
       file,
-      kind: getMediaKindFromType(file.type) as "image" | "video",
+      kind: getMediaKindFromFileMeta(file.name, file.type) as "image" | "video",
       url: URL.createObjectURL(file),
     }));
     setSelectedItems((prev) => [...prev, ...nextItems]);

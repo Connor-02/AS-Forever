@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 
 type LightboxMedia = {
@@ -76,7 +75,7 @@ export function LightboxImage({ media, initialIndex }: LightboxMediaProps) {
         aria-label="Open media fullscreen"
       >
         {currentItem.kind === "image" ? (
-          <Image src={currentItem.src} alt={currentItem.alt} fill className="object-contain" sizes="100vw" />
+          <img src={currentItem.src} alt={currentItem.alt} className="h-full w-full object-contain" />
         ) : (
           <video
             src={currentItem.src}
@@ -168,13 +167,7 @@ export function LightboxImage({ media, initialIndex }: LightboxMediaProps) {
               }`}
             >
               {currentItem.kind === "image" ? (
-                <Image
-                  src={currentItem.src}
-                  alt={currentItem.alt}
-                  fill
-                  className="object-contain"
-                  sizes="100vw"
-                />
+                <img src={currentItem.src} alt={currentItem.alt} className="h-full w-full object-contain" />
               ) : (
                 <video
                   src={currentItem.src}

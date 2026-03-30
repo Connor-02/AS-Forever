@@ -5,7 +5,7 @@ import {
   MAX_VIDEO_UPLOAD_SIZE_BYTES,
   PHOTOS_BUCKET,
 } from "@/lib/constants";
-import { getMediaKindFromType } from "@/lib/media";
+import { getMediaKindFromFileMeta } from "@/lib/media";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -28,7 +28,7 @@ function getFileExtension(fileName: string) {
 }
 
 function validateMediaFile(file: File) {
-  const kind = getMediaKindFromType(file.type);
+  const kind = getMediaKindFromFileMeta(file.name, file.type);
   if (kind === "unsupported") {
     return "Only image and video uploads are allowed.";
   }
@@ -73,7 +73,8 @@ export async function POST(request: Request) {
 
       const buffer = Buffer.from(await media.arrayBuffer());
       const storageResult = await supabase.storage.from(PHOTOS_BUCKET).upload(filePath, buffer, {
-        contentType: media.type,
+        contentType:
+          media.type || (getMediaKindFromFileMeta(media.name, media.type) === "video" ? "video/mp4" : "image/jpeg"),
         cacheControl: "3600",
         upsert: false,
       });
